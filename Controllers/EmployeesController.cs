@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using bpm_mcp_api.Models;
+using bpm_mcp_api.Requests;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace bpm_mcp_api.Controllers
@@ -24,57 +25,40 @@ namespace bpm_mcp_api.Controllers
         }
 
         /// <summary>
-        /// Retrieves a list of employee expenses
+        /// Submits a new employee expense for processing
         /// </summary>
-        /// <returns>A list of employee expenses with vendor information, amounts, and descriptions</returns>
-        /// <response code="200">Returns the list of employee expenses</response>
-        [HttpGet("expenses")]
-        [ProducesResponseType(typeof(IEnumerable<EmployeeExpense>), 200)]
+        /// <param name="request">The employee expense data to submit</param>
+        /// <returns>The created employee expense with assigned ID</returns>
+        /// <response code="201">Returns the newly created employee expense</response>
+        /// <response code="400">If the employee expense data is invalid or missing required fields</response>
+        [HttpPost("expenses")]
+        [ProducesResponseType(typeof(EmployeeExpense), 201)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), 400)]
         [SwaggerOperation(
-            Summary = "Get employee expenses",
-            Description = "Retrieves a comprehensive list of employee expenses including vendor details, amounts, currencies, and descriptions."
+            Summary = "Submit employee expense",
+            Description = "Creates a new employee expense record for processing. Automatically validates vendor information, amounts, currencies, descriptions, and invoice dates using data annotations."
         )]
-        public IEnumerable<EmployeeExpense> GetExpenses()
+        public ActionResult<EmployeeExpense> SubmitExpense([FromBody] SubmitEmployeeExpenseRequest request)
         {
-            return new List<EmployeeExpense>
+            if (!ModelState.IsValid)
             {
-                new EmployeeExpense
-                {
-                    Id = 1,
-                    VendorName = "Office Supplies Inc.",
-                    Amount = 145.75m,
-                    InvoiceDate = DateTime.Now.AddDays(-5),
-                    Currency = "USD",
-                    Description = "Office supplies and stationery"
-                },
-                new EmployeeExpense
-                {
-                    Id = 2,
-                    VendorName = "TechCorp Solutions",
-                    Amount = 2299.99m,
-                    InvoiceDate = DateTime.Now.AddDays(-10),
-                    Currency = "USD",
-                    Description = "Laptop repair and maintenance"
-                },
-                new EmployeeExpense
-                {
-                    Id = 3,
-                    VendorName = "Travel Express",
-                    Amount = 350.50m,
-                    InvoiceDate = DateTime.Now.AddDays(-3),
-                    Currency = "USD",
-                    Description = "Business trip transportation"
-                },
-                new EmployeeExpense
-                {
-                    Id = 4,
-                    VendorName = "Conference Center LLC",
-                    Amount = 85.00m,
-                    InvoiceDate = DateTime.Now.AddDays(-7),
-                    Currency = "USD",
-                    Description = "Training workshop registration"
-                }
+                return BadRequest(ModelState);
+            }
+
+            // Map request to response model
+            var employeeExpense = new EmployeeExpense
+            {
+                Id = new Random().Next(1000, 9999), // Simulate creating with new ID
+                VendorName = request.VendorName,
+                Amount = request.Amount,
+                InvoiceDate = request.InvoiceDate,
+                Currency = request.Currency,
+                Description = request.Description
             };
+
+            _logger.LogInformation($"Employee expense {employeeExpense.Id} submitted successfully for vendor {employeeExpense.VendorName}");
+
+            return CreatedAtAction(nameof(SubmitExpense), new { id = employeeExpense.Id }, employeeExpense);
         }
     }
 }

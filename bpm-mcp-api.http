@@ -1,0 +1,7 @@
+@bpm_mcp_api_HostAddress = http://localhost:5018
+
+GET {{bpm_mcp_api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
+a

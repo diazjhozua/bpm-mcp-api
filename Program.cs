@@ -26,11 +26,6 @@ This API is developed for hackathon group use and educational purposes. It demon
 - Purchase request processing
 
 **Note:** All endpoints return mock/dummy data for demonstration purposes.",
-        Contact = new Microsoft.OpenApi.Models.OpenApiContact
-        {
-            Name = "Hackathon Development Team",
-            Email = "hackathon-demo@example.com"
-        }
     });
 
     // Enable annotations

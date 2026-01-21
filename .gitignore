@@ -361,3 +361,27 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Security and Configuration Files
+appsettings.Local.json
+appsettings.Production.json
+appsettings.Staging.json
+*.env
+.env.*
+secrets.json
+connectionstrings.json
+
+# Database files (local development)
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# IDE specific files
+.vscode/
+.idea/
+
+# OS specific files
+.DS_Store
+Thumbs.db

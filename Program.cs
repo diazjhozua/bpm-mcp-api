@@ -1,8 +1,14 @@
 using System.Reflection;
+using Microsoft.EntityFrameworkCore;
+using bpm_mcp_api.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+
+// Configure Entity Framework
+builder.Services.AddDbContext<BpmDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -25,7 +31,7 @@ This API is developed for hackathon group use and educational purposes. It demon
 - Asset assignment and inventory
 - Purchase request processing
 
-**Note:** All endpoints return mock/dummy data for demonstration purposes.",
+**Note:** All endpoints use SQL Server database with Entity Framework Core for demonstration purposes.",
     });
 
     // Enable annotations

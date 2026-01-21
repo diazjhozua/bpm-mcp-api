@@ -35,6 +35,12 @@ namespace bpm_mcp_api.Models
     public class PurchaseRequestItem
     {
         /// <summary>
+        /// Unique identifier for the purchase request item
+        /// </summary>
+        /// <example>1</example>
+        public int Id { get; set; }
+
+        /// <summary>
         /// Product identifier from the asset types catalog
         /// </summary>
         /// <example>LAPTOP-DL-7420</example>

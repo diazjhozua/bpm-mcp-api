@@ -11,13 +11,25 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
     {
-        Title = "BPM MCP API",
+        Title = "BPM MCP API - Hackathon Demo",
         Version = "v1",
-        Description = "A comprehensive API for Business Process Management including employees, travel, assets, and purchases",
+        Description = @"🚧 **HACKATHON PROJECT - FOR DEMONSTRATION PURPOSES ONLY** 🚧
+
+This API is developed for hackathon group use and educational purposes. It demonstrates Business Process Management concepts including employees, travel, assets, and purchases management.
+
+⚠️ **Important Notice:** This application does not reflect any specific business flow or processes of any actual company. All data, workflows, and business logic are fictional and created solely for demonstration and learning purposes.
+
+**Features:**
+- Employee expense management
+- Travel request and expense tracking
+- Asset assignment and inventory
+- Purchase request processing
+
+**Note:** All endpoints return mock/dummy data for demonstration purposes.",
         Contact = new Microsoft.OpenApi.Models.OpenApiContact
         {
-            Name = "BPM Development Team",
-            Email = "dev@bpm.com"
+            Name = "Hackathon Development Team",
+            Email = "hackathon-demo@example.com"
         }
     });
 
@@ -32,12 +44,8 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 

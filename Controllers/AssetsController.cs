@@ -50,7 +50,7 @@ namespace bpm_mcp_api.Controllers
             }
 
             var employeeAssets = await _context.Assets
-                .Where(a => a.Employee.Equals(employee, StringComparison.OrdinalIgnoreCase))
+                .Where(a => a.Employee.ToLower() == employee.ToLower())
                 .ToListAsync();
 
             return Ok(employeeAssets);

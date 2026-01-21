@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using bpm_mcp_api.Data;
 using bpm_mcp_api.Models;
 using Swashbuckle.AspNetCore.Annotations;
 
@@ -13,55 +15,17 @@ namespace bpm_mcp_api.Controllers
     public class TravelsController : ControllerBase
     {
         private readonly ILogger<TravelsController> _logger;
-
-        // Dummy data for travel requests
-        private static readonly List<TravelRequest> TravelRequests = new List<TravelRequest>
-        {
-            new TravelRequest
-            {
-                Id = 1,
-                Type = "Business",
-                Purpose = "Client meeting and conference",
-                DepartureCity = "New York",
-                DepartureDate = DateTime.Now.AddDays(10),
-                DestinationCity = "Los Angeles",
-                ReturnDate = DateTime.Now.AddDays(15),
-                RequestId = "TR-2024-001",
-                RequestDate = DateTime.Now.AddDays(-5)
-            },
-            new TravelRequest
-            {
-                Id = 2,
-                Type = "Training",
-                Purpose = "Technical training workshop",
-                DepartureCity = "Chicago",
-                DepartureDate = DateTime.Now.AddDays(20),
-                DestinationCity = "San Francisco",
-                ReturnDate = DateTime.Now.AddDays(22),
-                RequestId = "TR-2024-002",
-                RequestDate = DateTime.Now.AddDays(-2)
-            },
-            new TravelRequest
-            {
-                Id = 3,
-                Type = "Business",
-                Purpose = "Vendor negotiations",
-                DepartureCity = "Seattle",
-                DepartureDate = DateTime.Now.AddDays(5),
-                DestinationCity = "Miami",
-                ReturnDate = DateTime.Now.AddDays(7),
-                RequestId = "TR-2024-003",
-                RequestDate = DateTime.Now.AddDays(-8)
-            }
-        };
+        private readonly BpmDbContext _context;
 
         /// <summary>
         /// Initializes a new instance of the TravelsController
         /// </summary>
         /// <param name="logger">The logger instance</param>
-        public TravelsController(ILogger<TravelsController> logger)
+        /// <param name="context">The database context</param>
+        public TravelsController(ILogger<TravelsController> logger, BpmDbContext context)
         {
             _logger = logger;
+            _context = context;
         }
 
         /// <summary>
@@ -78,9 +42,9 @@ namespace bpm_mcp_api.Controllers
             Summary = "Get travel request by ID",
             Description = "Retrieves detailed information about a specific travel request including departure/destination cities, dates, purpose, and request information."
         )]
-        public ActionResult<TravelRequest> GetTravelRequest(int id)
+        public async Task<ActionResult<TravelRequest>> GetTravelRequest(int id)
         {
-            var travelRequest = TravelRequests.FirstOrDefault(tr => tr.Id == id);
+            var travelRequest = await _context.TravelRequests.FindAsync(id);
 
             if (travelRequest == null)
             {
@@ -104,15 +68,23 @@ namespace bpm_mcp_api.Controllers
             Summary = "Submit travel expense",
             Description = "Creates a new travel expense record associated with a travel request, including vendor information, amount, and expense details."
         )]
-        public ActionResult<TravelExpense> SubmitTravelExpense([FromBody] TravelExpense travelExpense)
+        public async Task<ActionResult<TravelExpense>> SubmitTravelExpense([FromBody] TravelExpense travelExpense)
         {
             if (travelExpense == null)
             {
                 return BadRequest("Travel expense data is required");
             }
 
-            // Simulate creating the expense with a new ID
-            travelExpense.Id = new Random().Next(1000, 9999);
+            // Validate that the TravelRequestId exists
+            var travelRequestExists = await _context.TravelRequests.AnyAsync(tr => tr.Id == travelExpense.TravelRequestId);
+            if (!travelRequestExists)
+            {
+                return BadRequest($"Travel request with ID {travelExpense.TravelRequestId} not found");
+            }
+
+            // Save to database
+            _context.TravelExpenses.Add(travelExpense);
+            await _context.SaveChangesAsync();
 
             _logger.LogInformation($"Travel expense {travelExpense.Id} submitted successfully");
 

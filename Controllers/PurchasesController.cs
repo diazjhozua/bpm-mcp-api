@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using bpm_mcp_api.Data;
 using bpm_mcp_api.Models;
 using Swashbuckle.AspNetCore.Annotations;
 
@@ -13,14 +15,17 @@ namespace bpm_mcp_api.Controllers
     public class PurchasesController : ControllerBase
     {
         private readonly ILogger<PurchasesController> _logger;
+        private readonly BpmDbContext _context;
 
         /// <summary>
         /// Initializes a new instance of the PurchasesController
         /// </summary>
         /// <param name="logger">The logger instance</param>
-        public PurchasesController(ILogger<PurchasesController> logger)
+        /// <param name="context">The database context</param>
+        public PurchasesController(ILogger<PurchasesController> logger, BpmDbContext context)
         {
             _logger = logger;
+            _context = context;
         }
 
         /// <summary>
@@ -37,7 +42,7 @@ namespace bpm_mcp_api.Controllers
             Summary = "Create purchase request",
             Description = "Creates a new purchase request for multiple asset types with validation for employee information, requestor details, and item specifications including product IDs, quantities, and pricing."
         )]
-        public ActionResult<PurchaseRequest> CreatePurchaseRequest([FromBody] PurchaseRequest purchaseRequest)
+        public async Task<ActionResult<PurchaseRequest>> CreatePurchaseRequest([FromBody] PurchaseRequest purchaseRequest)
         {
             if (purchaseRequest == null)
             {
@@ -59,7 +64,7 @@ namespace bpm_mcp_api.Controllers
                 return BadRequest("At least one item is required in the purchase request");
             }
 
-            // Validate each item
+            // Validate each item and check if ProductIds exist
             foreach (var item in purchaseRequest.Items)
             {
                 if (string.IsNullOrWhiteSpace(item.ProductId))
@@ -76,10 +81,18 @@ namespace bpm_mcp_api.Controllers
                 {
                     return BadRequest("Quantity must be greater than zero for all items");
                 }
+
+                // Validate that the ProductId exists in AssetTypes
+                var assetTypeExists = await _context.AssetTypes.AnyAsync(at => at.ProductId == item.ProductId);
+                if (!assetTypeExists)
+                {
+                    return BadRequest($"Asset type with ProductId '{item.ProductId}' not found");
+                }
             }
 
-            // Simulate creating the purchase request with a new ID
-            purchaseRequest.Id = new Random().Next(10000, 99999);
+            // Save to database
+            _context.PurchaseRequests.Add(purchaseRequest);
+            await _context.SaveChangesAsync();
 
             _logger.LogInformation($"Purchase request {purchaseRequest.Id} created successfully for employee {purchaseRequest.Employee}");
 

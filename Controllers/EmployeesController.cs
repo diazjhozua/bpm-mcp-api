@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using bpm_mcp_api.Data;
 using bpm_mcp_api.Models;
 using bpm_mcp_api.Requests;
 using Swashbuckle.AspNetCore.Annotations;
@@ -14,14 +16,17 @@ namespace bpm_mcp_api.Controllers
     public class EmployeesController : ControllerBase
     {
         private readonly ILogger<EmployeesController> _logger;
+        private readonly BpmDbContext _context;
 
         /// <summary>
         /// Initializes a new instance of the EmployeesController
         /// </summary>
         /// <param name="logger">The logger instance</param>
-        public EmployeesController(ILogger<EmployeesController> logger)
+        /// <param name="context">The database context</param>
+        public EmployeesController(ILogger<EmployeesController> logger, BpmDbContext context)
         {
             _logger = logger;
+            _context = context;
         }
 
         /// <summary>
@@ -38,23 +43,26 @@ namespace bpm_mcp_api.Controllers
             Summary = "Submit employee expense",
             Description = "Creates a new employee expense record for processing. Automatically validates vendor information, amounts, currencies, descriptions, and invoice dates using data annotations."
         )]
-        public ActionResult<EmployeeExpense> SubmitExpense([FromBody] SubmitEmployeeExpenseRequest request)
+        public async Task<ActionResult<EmployeeExpense>> SubmitExpense([FromBody] SubmitEmployeeExpenseRequest request)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            // Map request to response model
+            // Map request to entity model
             var employeeExpense = new EmployeeExpense
             {
-                Id = new Random().Next(1000, 9999), // Simulate creating with new ID
                 VendorName = request.VendorName,
                 Amount = request.Amount,
                 InvoiceDate = request.InvoiceDate,
                 Currency = request.Currency,
                 Description = request.Description
             };
+
+            // Save to database
+            _context.EmployeeExpenses.Add(employeeExpense);
+            await _context.SaveChangesAsync();
 
             _logger.LogInformation($"Employee expense {employeeExpense.Id} submitted successfully for vendor {employeeExpense.VendorName}");
 

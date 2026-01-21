@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using bpm_mcp_api.Data;
 using bpm_mcp_api.Models;
+using bpm_mcp_api.Requests;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace bpm_mcp_api.Controllers
@@ -57,30 +58,41 @@ namespace bpm_mcp_api.Controllers
         /// <summary>
         /// Submits a new travel expense
         /// </summary>
-        /// <param name="travelExpense">The travel expense data to submit</param>
+        /// <param name="request">The travel expense data to submit</param>
         /// <returns>The created travel expense with assigned ID</returns>
         /// <response code="201">Returns the newly created travel expense</response>
         /// <response code="400">If the travel expense data is invalid</response>
         [HttpPost("expenses")]
         [ProducesResponseType(typeof(TravelExpense), 201)]
-        [ProducesResponseType(typeof(string), 400)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), 400)]
         [SwaggerOperation(
             Summary = "Submit travel expense",
             Description = "Creates a new travel expense record associated with a travel request, including vendor information, amount, and expense details."
         )]
-        public async Task<ActionResult<TravelExpense>> SubmitTravelExpense([FromBody] TravelExpense travelExpense)
+        public async Task<ActionResult<TravelExpense>> SubmitTravelExpense([FromBody] SubmitTravelExpenseRequest request)
         {
-            if (travelExpense == null)
+            if (!ModelState.IsValid)
             {
-                return BadRequest("Travel expense data is required");
+                return BadRequest(ModelState);
             }
 
             // Validate that the TravelRequestId exists
-            var travelRequestExists = await _context.TravelRequests.AnyAsync(tr => tr.Id == travelExpense.TravelRequestId);
+            var travelRequestExists = await _context.TravelRequests.AnyAsync(tr => tr.Id == request.TravelRequestId);
             if (!travelRequestExists)
             {
-                return BadRequest($"Travel request with ID {travelExpense.TravelRequestId} not found");
+                return BadRequest($"Travel request with ID {request.TravelRequestId} not found");
             }
+
+            // Map request to entity model
+            var travelExpense = new TravelExpense
+            {
+                TravelRequestId = request.TravelRequestId,
+                VendorName = request.VendorName,
+                Amount = request.Amount,
+                InvoiceDate = request.InvoiceDate,
+                Currency = request.Currency,
+                Description = request.Description
+            };
 
             // Save to database
             _context.TravelExpenses.Add(travelExpense);

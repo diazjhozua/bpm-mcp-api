@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using bpm_mcp_api.Data;
 using bpm_mcp_api.Models;
+using bpm_mcp_api.Requests;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace bpm_mcp_api.Controllers
@@ -31,64 +32,46 @@ namespace bpm_mcp_api.Controllers
         /// <summary>
         /// Creates a new purchase request for asset procurement
         /// </summary>
-        /// <param name="purchaseRequest">The purchase request data including employee, requestor, and list of items</param>
+        /// <param name="request">The purchase request data including employee, requestor, and list of items</param>
         /// <returns>The created purchase request with assigned ID</returns>
         /// <response code="201">Returns the newly created purchase request</response>
         /// <response code="400">If the purchase request data is invalid or missing required fields</response>
         [HttpPost("requests")]
         [ProducesResponseType(typeof(PurchaseRequest), 201)]
-        [ProducesResponseType(typeof(string), 400)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), 400)]
         [SwaggerOperation(
             Summary = "Create purchase request",
             Description = "Creates a new purchase request for multiple asset types with validation for employee information, requestor details, and item specifications including product IDs, quantities, and pricing."
         )]
-        public async Task<ActionResult<PurchaseRequest>> CreatePurchaseRequest([FromBody] PurchaseRequest purchaseRequest)
+        public async Task<ActionResult<PurchaseRequest>> CreatePurchaseRequest([FromBody] CreatePurchaseRequestRequest request)
         {
-            if (purchaseRequest == null)
+            if (!ModelState.IsValid)
             {
-                return BadRequest("Purchase request data is required");
+                return BadRequest(ModelState);
             }
 
-            if (string.IsNullOrWhiteSpace(purchaseRequest.Employee))
+            // Validate that ProductIds exist in AssetTypes
+            foreach (var item in request.Items)
             {
-                return BadRequest("Employee is required");
-            }
-
-            if (string.IsNullOrWhiteSpace(purchaseRequest.Requestor))
-            {
-                return BadRequest("Requestor is required");
-            }
-
-            if (purchaseRequest.Items == null || !purchaseRequest.Items.Any())
-            {
-                return BadRequest("At least one item is required in the purchase request");
-            }
-
-            // Validate each item and check if ProductIds exist
-            foreach (var item in purchaseRequest.Items)
-            {
-                if (string.IsNullOrWhiteSpace(item.ProductId))
-                {
-                    return BadRequest("ProductId is required for all items");
-                }
-
-                if (item.Price <= 0)
-                {
-                    return BadRequest("Price must be greater than zero for all items");
-                }
-
-                if (item.Quantity <= 0)
-                {
-                    return BadRequest("Quantity must be greater than zero for all items");
-                }
-
-                // Validate that the ProductId exists in AssetTypes
                 var assetTypeExists = await _context.AssetTypes.AnyAsync(at => at.ProductId == item.ProductId);
                 if (!assetTypeExists)
                 {
                     return BadRequest($"Asset type with ProductId '{item.ProductId}' not found");
                 }
             }
+
+            // Map request to entity models
+            var purchaseRequest = new PurchaseRequest
+            {
+                Employee = request.Employee,
+                Requestor = request.Requestor,
+                Items = request.Items.Select(item => new PurchaseRequestItem
+                {
+                    ProductId = item.ProductId,
+                    Price = item.Price,
+                    Quantity = item.Quantity
+                }).ToList()
+            };
 
             // Save to database
             _context.PurchaseRequests.Add(purchaseRequest);
